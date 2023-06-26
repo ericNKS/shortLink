@@ -14,6 +14,14 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
+    if (isset($link)) {
+        return view('home', ['link' => $link]);
+    }
+    if(isset($link_original) && isset($link_encurtado)){
+        return view('welcome', ['link_original' => $link_original, 'link_encurtado' => $link_encurtado]);
+    }
+
     return view('welcome');
-});
+    
+})->name('home');
 Route::get('/l/{link}', [App\Http\Controllers\LinkShortedController::class , 'redirecionar']);

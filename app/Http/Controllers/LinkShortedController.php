@@ -18,7 +18,12 @@ class LinkShortedController extends Controller
 
         foreach ($linkShorted as $key => $link) {
             if ($link->link_shorteds == $request->link) {
-                return response()->json($link->originalLink->link);
+                if(strpos($link->originalLink->link, 'https://') === 0){
+                    return redirect($link->originalLink->link);
+                }
+                else{
+                    return redirect('https://' .$link->originalLink->link);
+                }
             }
         }
         

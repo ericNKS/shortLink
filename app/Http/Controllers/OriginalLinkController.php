@@ -33,20 +33,24 @@ class OriginalLinkController extends Controller
      */
     public function store(Request $request)
     {
-        $originalLink = $this->originalLink;
+            $originalLink = $this->originalLink;
+            $originalLink->link = $request->link;
+            $linkExiste = $originalLink->where('link',$originalLink->link)->with('linkShorted')->first();
+            if($linkExiste === null){
 
-        $originalLink->link = $request->link;
-        $originalLink->save();
+                $originalLink->save();
 
-        $linkShorted = $this->linkShorted;
+                $linkShorted = $this->linkShorted;
 
-        $linkEncurtado = $linkShorted->generateRandonLink($originalLink->link);
-        $linkShorted->link_shorteds = $linkEncurtado;
-        $linkShorted->original_link_id = $originalLink->id;
+                $linkEncurtado = $linkShorted->generateRandonLink($originalLink->link);
+                $linkShorted->link_shorteds = $linkEncurtado;
+                $linkShorted->original_link_id = $originalLink->id;
 
-        $linkShorted->save();
-
-        return ['link_original' => $originalLink->link, 'link_encurtado' => $linkShorted->link_shorteds];
+                $linkShorted->save();
+                return redirect()->route('home', ['link_original' => $originalLink->link, 'link_encurtado' => $linkShorted->link_shorteds]);
+            } else{
+            return redirect()->route('home', ['link' => $linkExiste->linkShorted->link_shorteds]);
+        }
     }
 
     /**
@@ -55,32 +59,21 @@ class OriginalLinkController extends Controller
      * @param  \App\Models\OriginalLink  $originalLink
      * @return \Illuminate\Http\Response
      */
-    public function show(OriginalLink $originalLink)
+    public function show(Request $request,int $id)
     {
-        //
-    }
+        $originalLink = $this->originalLink;
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\OriginalLink  $originalLink
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(OriginalLink $originalLink)
-    {
-        //
-    }
+        if($request->has('original')){
+            $originalLink = $originalLink->selectRaw($request->original . ',id')->with('linkShorted')->find($id);
+            return $originalLink;
+        }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\OriginalLink  $originalLink
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, OriginalLink $originalLink)
-    {
-        //
+        if($request->has('short')){
+            $originalLink = $originalLink->with('linkShorted:original_link_id,' . $request->short)->find($id);
+            return $originalLink;
+        }
+
+        return $originalLink->with('linkShorted')->find($id);
     }
 
     /**
@@ -89,8 +82,17 @@ class OriginalLinkController extends Controller
      * @param  \App\Models\OriginalLink  $originalLink
      * @return \Illuminate\Http\Response
      */
-    public function destroy(OriginalLink $originalLink)
+    public function destroy(int $id)
     {
-        //
+        $originalLink = $this->originalLink;
+        $linkShorted = $this->linkShorted;
+
+        $originalLink = $originalLink->with('linkShorted')->find($id);
+        $linkShorted = $linkShorted->find($originalLink->linkShorted->id);
+
+        $linkShorted->delete();
+        $originalLink->delete();
+
+        return $originalLink;
     }
 }
